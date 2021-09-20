@@ -1,19 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/handler"
 )
-
-type Request struct {
-	OperationName string                 `json:"operationName"`
-	Variables     map[string]interface{} `json:"variables"`
-	Query         string                 `json:"query"`
-}
 
 type Tutorial struct {
 	ID       int
@@ -148,17 +142,13 @@ func data() graphql.Schema {
 }
 
 func testDemo() {
-	http.HandleFunc("/query", func(w http.ResponseWriter, r *http.Request) {
-		param := &Request{}
-		if err := json.NewDecoder(r.Body).Decode(param); err != nil {
-			fmt.Println(err)
-			return
-		}
-		result := graphql.Do(graphql.Params{
-			Schema:        data(),
-			RequestString: param.Query,
-		})
-		_ = json.NewEncoder(w).Encode(result)
-	})
-	_ = http.ListenAndServe(":8080", nil)
+	schema := data()
+	http.Handle("/", handler.New(&handler.Config{
+		Schema:     &schema,
+		Pretty:     true,
+		GraphiQL:   true,
+		Playground: true,
+	}))
+	err := http.ListenAndServe(":8080", nil)
+	fmt.Println(err)
 }
